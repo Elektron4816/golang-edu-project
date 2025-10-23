@@ -1,4 +1,5 @@
-bind_addres = ":5000"
+bind_addres = ":3000"
 log_level = "debug"
 database_url = "postgres://mac:4816@localhost/education_golang_project?sslmode=disable"
-
+#database_url = "postgres://agolubev:new_password@localhost/education_golang_project?sslmode=disable"
+session_key = "12345678900987654321"

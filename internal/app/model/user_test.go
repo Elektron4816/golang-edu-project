@@ -24,8 +24,8 @@ func TestUser_Validate(t *testing.T) {
 			name: "with password",
 			u: func() *model.User {
 				u := model.TestUser(t)
-				u.TmpPassword = ""
 				u.Password = "TmpPassword"
+				u.EncryptedPassword = "TmpPassword"
 				return u
 			},
 			isValid: true,
@@ -52,7 +52,7 @@ func TestUser_Validate(t *testing.T) {
 			name: "invalid tmpPassword",
 			u: func() *model.User {
 				u := model.TestUser(t)
-				u.TmpPassword = "12345"
+				u.Password = "12345"
 				return u
 			},
 			isValid: false,
@@ -61,7 +61,7 @@ func TestUser_Validate(t *testing.T) {
 			name: "empty tmpPassword",
 			u: func() *model.User {
 				u := model.TestUser(t)
-				u.TmpPassword = ""
+				u.Password = ""
 				return u
 			},
 			isValid: false,
