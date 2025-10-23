@@ -1,0 +1,4 @@
+bind_addres = ":5000"
+log_level = "debug"
+database_url = "postgres://mac:4816@localhost/education_golang_project?sslmode=disable"
+
