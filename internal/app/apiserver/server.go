@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -12,10 +13,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-var (
-	errorIncorectParams = errors.New("incorrect email or password")
-	sessionName         = "session"
+const (
+	sessionName        = "session"
+	ctxKeyUser  ctxKey = iota
 )
+
+var (
+	errorIncorectParams   = errors.New("incorrect email or password")
+	errorNotAuthenticated = errors.New("not authenticated")
+)
+
+type ctxKey int8
 
 type server struct {
 	router       *mux.Router
@@ -45,6 +53,42 @@ func (s *server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *server) configureRouter() {
 	s.router.HandleFunc("/users", s.handleUsersCreate()).Methods("POST")
 	s.router.HandleFunc("/sessions", s.handleSessionsCreate()).Methods("POST")
+
+	private := s.router.PathPrefix("/private").Subrouter()
+	private.Use(s.authenticateUser)
+	private.HandleFunc("/whoami", s.handleWhoami()).Methods("GET")
+}
+
+func (s *server) authenticateUser(next http.Handler) http.Handler {
+
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		sessions, err := s.sessionStore.Get(r, sessionName)
+
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		id, ok := sessions.Values["user_id"]
+		if !ok {
+			s.error(w, r, http.StatusUnauthorized, errorNotAuthenticated)
+			return
+		}
+
+		u, err := s.store.User().Find(id.(int))
+
+		if err != nil {
+			s.error(w, r, http.StatusUnauthorized, errorNotAuthenticated)
+		}
+
+		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyUser, u)))
+	})
+}
+
+func (s *server) handleWhoami() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		s.respond(w, r, http.StatusOK, r.Context().Value(ctxKeyUser).(*model.User))
+	}
 }
 
 func (s *server) handleUsersCreate() http.HandlerFunc {
